@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changelog-create-restaurant-table.sql
+  - include:
+      file: db/changelog/changelog-create-user-loyalty-table.sql
+  - include:
+      file: db/changelog/changelog-create-receipt-table.sql
+  - include:
+      file: db/changelog/changelog-create-coupon-table.sql
+  - include:
+      file: db/changelog/changelog-create-company-table.sql
+  - include:
+      file: db/changelog/changelog-create-employee-table.sql
+  - include:
+      file: db/changelog/changelog-create-notifications-table.sql
+  - include:
+      file: db/changelog/changelog-create-user-notification-status-table.sql
+  - include:
+      file: db/changelog/changelog-create-user-preferences-tables.sql
+  - include:
+      file: db/changelog/changelog-create-vip-restaurant-table.sql
+  - include:
+      file: db/changelog/changelog-create-restaurant-config-table.sql
+  - include:
+      file: db/changelog/changelog-create-challenge-template-table.sql
+  - include:
+      file: db/changelog/changelog-create-receipt-challenge-usage-table.sql
