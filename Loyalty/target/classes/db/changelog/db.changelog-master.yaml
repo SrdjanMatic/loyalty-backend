@@ -1,9 +1,0 @@
-databaseChangeLog:
-  - include:
-      file: db/changelog/changelog-create-restaurant-table.sql
-  - include:
-      file: db/changelog/changelog-create-user-loyalty-table.sql
-  - include:
-      file: db/changelog/changelog-create-receipt-table.sql
-  - include:
-      file: db/changelog/changelog-create-coupon-table.sql
