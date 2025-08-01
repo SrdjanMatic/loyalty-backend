@@ -19,7 +19,7 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
                     ul.availablePoints,ul.totalPoints, ul.joinedAt, ul.active
                 )
                 FROM Restaurant r
-                LEFT JOIN UserLoyalty ul ON r.id = ul.restaurantId AND ul.userId = :userId
+                 JOIN UserLoyalty ul ON r.id = ul.restaurantId AND ul.userId = :userId
                 ORDER BY r.name
             """)
     List<RestaurantWithUserLoyaltyView> findAllWithUserLoyalty(@Param("userId") String userId);
@@ -33,14 +33,13 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
                     rc.headerAndButtonColor,
                     rc.logo,
                     rc.backgroundImage,
-                    rc.restaurantName,
+                    rc.restaurantDisplayName,
                     rc.description,
                     r.premiumCouponLimit,
                     r.vipCouponLimit
                 )
                 FROM Restaurant r
-                LEFT JOIN RestaurantConfig rc ON r.id = rc.restaurant.id
-                LEFT JOIN ChallengeTemplate ct ON rc.id = ct.restaurantConfig.id
+                JOIN RestaurantConfig rc ON r.id = rc.restaurant.id
                 WHERE r.id = :restaurantId
             """)
     Optional<RestaurantConfigDataView> findConfigDataRestaurant(@Param("restaurantId") Long restaurantId);

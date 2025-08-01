@@ -26,7 +26,7 @@ public class RestaurantConfig {
     private String headerAndButtonColor;
     private String logo;
     private String backgroundImage;
-    private String restaurantName;
+    private String restaurantDisplayName;
     private String description;
 
 }

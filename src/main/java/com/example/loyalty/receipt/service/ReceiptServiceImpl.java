@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -42,6 +43,7 @@ public class ReceiptServiceImpl implements ReceiptService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ChallengeTemplateRepository challengeTemplateRepository;
     private final ReceiptChallengeUsageRepository receiptChallengeUsageRepository;
+    private final FiscalReceiptClient fiscalReceiptClient;
 
     @Override
     public Receipt create(Receipt receipt) {
@@ -55,35 +57,16 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     @Override
     @Transactional
-    public ReceiptWithWheelDataView processFiscalReceipt(String rowData, String userId) {
+    public ReceiptWithWheelDataView createReceiptAndProcessFiscalReceipt(String rowData, String userId) {
         try {
-            String finalUrl = "https://suf.purs.gov.rs/v/?vl=" + rowData;
-            URI uri = URI.create(finalUrl);
-
-            HttpHeaders headers = getHttpHeaders();
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-
-            ResponseEntity<String> response = restTemplate.exchange(
-                    uri,
-                    HttpMethod.GET,
-                    entity,
-                    String.class
-            );
-            log.debug("Fiscal receipt HTTP status: {}", response.getStatusCode());
-            if (response.getStatusCode() != HttpStatus.OK || response.getBody() == null) {
-                log.error("Failed to fetch fiscal receipt HTML. Status: {}, Body: {}", response.getStatusCode(), response.getBody());
-                throw new IllegalStateException("Failed to fetch fiscal receipt HTML.");
-            }
-
-            String html = response.getBody();
-            Document doc = Jsoup.parse(html);
+            Document doc = fiscalReceiptClient.fetchFiscalReceiptHtml(rowData);
 
             String pib = doc.select("#tinLabel").text();
             String totalAmount = doc.select("#totalAmountLabel").text();
 //            String invoiceNumber = doc.select("#invoiceNumberLabel").text();
             String invoiceNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-            String receiptDate = doc.select("#sdcDateTimeLabel").text();
-
+//            String receiptDate = doc.select("#sdcDateTimeLabel").text();
+            String receiptDate = "27.07.2025. 23:25:44";
 
             if (pib.isEmpty() || totalAmount.isEmpty() || invoiceNumber.isEmpty()) {
                 throw new IllegalArgumentException("Required fields missing in fiscal receipt HTML.");
@@ -112,6 +95,7 @@ public class ReceiptServiceImpl implements ReceiptService {
 
             return ReceiptWithWheelDataView.builder()
                     .receiptKey(savedReceipt.getReceiptKey())
+                    .receiptPoints(points)
                     .wheelData(buildWheelData(savedReceipt.getPoints()))
                     .build();
 
@@ -125,7 +109,8 @@ public class ReceiptServiceImpl implements ReceiptService {
 
     @Override
     @Transactional
-    public void addGamePoints(GameDTO gameDTO, String name) {
+    public void saveGamePoints(GameDTO gameDTO, Principal principal) {
+        String userId = principal.getName();
         Receipt receipt = receiptRepository.findByReceiptKey(gameDTO.receiptKey());
         receipt.setGamePoints(gameDTO.gamePoints());
         receiptRepository.save(receipt);
@@ -134,7 +119,7 @@ public class ReceiptServiceImpl implements ReceiptService {
 
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime afterDate = now.minusDays(challengeTemplate.getPeriod());
-        List<Receipt> allReceiptInChallengeReceiptPeriod = receiptRepository.findAllByRestaurantIdAndUserIdAndReceiptDateAfterOrderByReceiptDateDesc(receipt.getRestaurant().getId(),challengeTemplate.getId(), name, afterDate);
+        List<Receipt> allReceiptInChallengeReceiptPeriod = receiptRepository.findAllByRestaurantIdAndUserIdAndReceiptDateAfterOrderByReceiptDateDesc(receipt.getRestaurant().getId(), challengeTemplate.getId(), userId, afterDate);
 
 
         List<ReceiptChallengeUsage> usages = allReceiptInChallengeReceiptPeriod.stream()
@@ -149,7 +134,7 @@ public class ReceiptServiceImpl implements ReceiptService {
         receiptChallengeUsageRepository.saveAll(usages);
 
 
-        UserLoyalty userLoyalty = useLoyaltyRepository.findByRestaurantIdAndUserId(receipt.getRestaurant().getId(), name);
+        UserLoyalty userLoyalty = useLoyaltyRepository.findByRestaurantIdAndUserId(receipt.getRestaurant().getId(), userId);
 
         long newTotalPoints = userLoyalty.getTotalPoints() + gameDTO.gamePoints();
 
@@ -176,7 +161,9 @@ public class ReceiptServiceImpl implements ReceiptService {
     private static void checkPromotion(Restaurant restaurant, long newTotalPoints, UserLoyalty userLoyalty) {
         if (newTotalPoints > restaurant.getVipCouponLimit() && !userLoyalty.getLevel().equals(UserLoyalty.UserLoyaltyLevel.VIP)) {
             userLoyalty.setLevel(UserLoyalty.UserLoyaltyLevel.PROMOTED_TO_VIP);
-        } else if (newTotalPoints > restaurant.getPremiumCouponLimit() && !userLoyalty.getLevel().equals(UserLoyalty.UserLoyaltyLevel.PREMIUM) && !userLoyalty.getLevel().equals(UserLoyalty.UserLoyaltyLevel.VIP)) {
+        } else if (newTotalPoints > restaurant.getPremiumCouponLimit()
+                && !userLoyalty.getLevel().equals(UserLoyalty.UserLoyaltyLevel.PREMIUM)
+                && !userLoyalty.getLevel().equals(UserLoyalty.UserLoyaltyLevel.VIP)) {
             userLoyalty.setLevel(UserLoyalty.UserLoyaltyLevel.PROMOTED_TO_PREMIUM);
         }
     }
@@ -211,22 +198,4 @@ public class ReceiptServiceImpl implements ReceiptService {
         return randomNumbers;
     }
 
-    private static HttpHeaders getHttpHeaders() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7");
-        headers.set("Accept-Language", "en-GB,en-US;q=0.9,en;q=0.8");
-        headers.set("Cache-Control", "max-age=0");
-        headers.set("Priority", "u=0, i");
-        headers.set("Sec-CH-UA", "\"Google Chrome\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\"");
-        headers.set("Sec-CH-UA-Mobile", "?1");
-        headers.set("Sec-CH-UA-Platform", "\"Android\"");
-        headers.set("Sec-Fetch-Dest", "document");
-        headers.set("Sec-Fetch-Mode", "navigate");
-        headers.set("Sec-Fetch-Site", "none");
-        headers.set("Sec-Fetch-User", "?1");
-        headers.set("Upgrade-Insecure-Requests", "1");
-        headers.set("User-Agent", "Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36");
-        headers.set("Cookie", "localization=sr-Cyrl-RS");
-        return headers;
-    }
 }

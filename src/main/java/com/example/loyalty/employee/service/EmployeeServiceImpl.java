@@ -28,15 +28,15 @@ public class EmployeeServiceImpl implements EmployeeService{
 
 
     @Override
-    public List<EmployeeView> getAllByCompanyId(Long companyId, Principal principal) {
-        employeeRolePermissionChecker.canViewAllEmployee(principal);
+    public List<EmployeeView> findAllByCompanyId(Long companyId, Principal principal) {
+        employeeRolePermissionChecker.canViewAllEmployees(principal);
         return employeeRepository.findByCompanyId(companyId);
     }
 
     @Override
     @Transactional
     public Employee create(EmployeeDTO employeeDTO, Principal principal) {
-        employeeRolePermissionChecker.canCreateNewEmployee(principal);
+        employeeRolePermissionChecker.canCreateEmployee(principal);
         Employee employee = buildEmployee(employeeDTO);
         Employee newEmployee = employeeRepository.save(employee);
         keycloakService.assignVipCardByEmail(newEmployee.getEmail(), "true");

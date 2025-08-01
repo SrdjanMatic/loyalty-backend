@@ -7,9 +7,9 @@ import java.security.Principal;
 import java.util.List;
 
 public interface CouponService {
-    List<Coupon> getAllByRestaurantId(Long restaurantId);
+    List<Coupon> findAllByRestaurantId(Long restaurantId);
 
-    Coupon create(CouponDTO coupon);
+    Coupon create(CouponDTO coupon, Principal principal);
 
-    List<Coupon> getAllByRestaurantIdAndCouponLevel(Long restaurantId, Principal principal);
+    List<Coupon> findAllByRestaurantIdAndCouponLevel(Long restaurantId, Principal principal);
 }

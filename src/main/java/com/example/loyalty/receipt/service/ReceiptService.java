@@ -4,6 +4,7 @@ import com.example.loyalty.receipt.domain.GameDTO;
 import com.example.loyalty.receipt.domain.Receipt;
 import com.example.loyalty.receipt.domain.ReceiptWithWheelDataView;
 
+import java.security.Principal;
 import java.util.List;
 
 public interface ReceiptService {
@@ -11,7 +12,7 @@ public interface ReceiptService {
 
     List<Receipt> getAllByRestaurantAndUser(Long restaurantId, String name);
 
-    ReceiptWithWheelDataView processFiscalReceipt(String rowData, String username);
+    ReceiptWithWheelDataView createReceiptAndProcessFiscalReceipt(String rowData, String username);
 
-    void addGamePoints(GameDTO gameDTO, String name);
+    void saveGamePoints(GameDTO gameDTO, Principal principal);
 }

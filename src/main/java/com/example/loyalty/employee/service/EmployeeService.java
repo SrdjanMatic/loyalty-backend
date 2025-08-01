@@ -8,7 +8,7 @@ import java.security.Principal;
 import java.util.List;
 
 public interface EmployeeService {
-    List<EmployeeView> getAllByCompanyId(Long companyId, Principal principal);
+    List<EmployeeView> findAllByCompanyId(Long companyId, Principal principal);
 
     Employee create(EmployeeDTO employeeDTO, Principal principal);
 

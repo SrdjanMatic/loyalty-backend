@@ -5,6 +5,7 @@ import com.example.loyalty.receipt.domain.QrCodeDTO;
 import com.example.loyalty.receipt.domain.Receipt;
 import com.example.loyalty.receipt.domain.ReceiptWithWheelDataView;
 import com.example.loyalty.receipt.service.ReceiptServiceImpl;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -20,18 +21,19 @@ public class ReceiptController {
     private final ReceiptServiceImpl service;
 
     @GetMapping("/{restaurantId}")
-    public ResponseEntity<List<Receipt>> getAll(@PathVariable Long restaurantId, Principal principal) {
-        return ResponseEntity.ok(service.getAllByRestaurantAndUser(restaurantId, principal.getName()));
+    public List<Receipt> getAll(@PathVariable Long restaurantId, Principal principal) {
+        return service.getAllByRestaurantAndUser(restaurantId, principal.getName());
     }
 
     @PostMapping("/create-receipt")
-    public ReceiptWithWheelDataView createReceipt(@RequestBody QrCodeDTO vl, Principal principal) {
-        return service.processFiscalReceipt(vl.getRowData(), principal.getName());
+    public ReceiptWithWheelDataView createReceipt(@RequestBody @Valid QrCodeDTO vl, Principal principal) {
+        return service.createReceiptAndProcessFiscalReceipt(vl.rowData(), principal.getName());
     }
 
     @PostMapping("/game-points")
-    public void addGamePoints(@RequestBody GameDTO gameDTO, Principal principal) {
-        service.addGamePoints(gameDTO, principal.getName());
+    public ResponseEntity<Void> saveGamePoints(@RequestBody @Valid GameDTO gameDTO, Principal principal) {
+        service.saveGamePoints(gameDTO, principal);
+        return ResponseEntity.noContent().build();
     }
 
 

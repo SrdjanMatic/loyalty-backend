@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import java.security.Principal;
 import java.util.List;
 
+import static com.example.loyalty.security.constants.Constants.RESTAURANT_ADMIN;
 import static com.example.loyalty.security.constants.Constants.SYSTEM_ADMIN;
 
 @Component
@@ -17,7 +18,7 @@ public class RestaurantRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canViewAllRestaurants(Principal principal) {
+    public void canCreateRestaurantAdmin(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 
@@ -32,4 +33,12 @@ public class RestaurantRolePermissionChecker {
             throw new AccessDeniedException("Unauthorized: You do not have permission to view all restaurants.");
         }
     }
+    private void checkIfUserIsSystemAdminOrRestaurantAdmin(Principal principal) {
+        List<String> roles = rolePermissionsChecker.getRoles(principal);
+
+        if (!roles.contains(SYSTEM_ADMIN) && !roles.contains(RESTAURANT_ADMIN)) {
+            throw new AccessDeniedException("Unauthorized: You do not have permission to view all restaurants.");
+        }
+    }
+
 }

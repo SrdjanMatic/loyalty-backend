@@ -1,15 +1,17 @@
-package com.example.loyalty.restaurant.service;
+package com.example.loyalty.restaurant.service.vip_restaurant;
 
 import com.example.loyalty.restaurant.domain.Restaurant;
 import com.example.loyalty.restaurant.domain.VipRestaurant;
 import com.example.loyalty.restaurant.domain.VipRestaurantDTO;
 import com.example.loyalty.restaurant.repository.RestaurantRepository;
 import com.example.loyalty.restaurant.repository.VipRestaurantRepository;
+import com.example.loyalty.restaurant.security.VipRestaurantRolePermissionChecker;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 
+import java.security.Principal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -19,18 +21,18 @@ import java.util.List;
 public class VipRestaurantServiceImpl implements VipRestaurantService {
 
     private final VipRestaurantRepository vipRestaurantRepository;
-
     private final RestaurantRepository restaurantRepository;
+    private final VipRestaurantRolePermissionChecker rolePermissionChecker;
 
 
     @Override
-    public List<VipRestaurant> getAll() {
+    public List<VipRestaurant> findAll() {
         return vipRestaurantRepository.findAll();
     }
 
     @Override
-    public VipRestaurant create(VipRestaurantDTO vipRestaurantDTO) {
-
+    public VipRestaurant create(VipRestaurantDTO vipRestaurantDTO, Principal principal) {
+    rolePermissionChecker.canCreateVipRestaurantAdmin(principal);
         VipRestaurant vipRestaurant = buildVipRestaurant(vipRestaurantDTO);
         return vipRestaurantRepository.save(vipRestaurant);
     }

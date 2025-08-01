@@ -7,6 +7,6 @@ CREATE TABLE IF NOT EXISTS restaurant_config
     background_color        VARCHAR(10),
     font_color              VARCHAR(10),
     header_and_button_color VARCHAR(10),
-    restaurant_name         TEXT,
+    restaurant_display_name         TEXT,
     description             TEXT
 );

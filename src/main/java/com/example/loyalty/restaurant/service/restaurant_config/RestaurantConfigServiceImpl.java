@@ -14,9 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,7 +38,6 @@ public class RestaurantConfigServiceImpl implements RestaurantConfigService {
         //TODO: add this to config response
         List<ChallengeTemplate> challengeTemplates = buildChallengeTemplates(restaurantConfigDTO, savedConfig);
 
-
         return savedConfig;
     }
 
@@ -60,25 +57,26 @@ public class RestaurantConfigServiceImpl implements RestaurantConfigService {
         RestaurantConfig config = configRepository.findByRestaurantId(restaurant.getId())
                 .orElseGet(() -> RestaurantConfig.builder()
                         .restaurant(restaurant)
-                        .logo(restaurantConfigDTO.logo())
-                        .description(restaurantConfigDTO.description())
-                        .restaurantName(restaurantConfigDTO.restaurantName())
-                        .backgroundImage(restaurantConfigDTO.backgroundImage())
-                        .fontColor(restaurantConfigDTO.fontColor())
-                        .backgroundColor(restaurantConfigDTO.backgroundColor())
-                        .headerAndButtonColor(restaurantConfigDTO.headerAndButtonColor())
                         .build());
+
+        config.setLogo(restaurantConfigDTO.logo());
+        config.setDescription(restaurantConfigDTO.description());
+        config.setRestaurantDisplayName(restaurantConfigDTO.restaurantDisplayName());
+        config.setBackgroundImage(restaurantConfigDTO.backgroundImage());
+        config.setFontColor(restaurantConfigDTO.fontColor());
+        config.setBackgroundColor(restaurantConfigDTO.backgroundColor());
+        config.setHeaderAndButtonColor(restaurantConfigDTO.headerAndButtonColor());
 
         return configRepository.save(config);
     }
 
     @Override
-    public List<ChallengeTemplateView> getRestaurantChallenge(Long restaurantId, Principal principal) {
+    public List<ChallengeTemplateView> findRestaurantChallenge(Long restaurantId, Principal principal) {
         return challengeTemplateRepository.findByRestaurantConfigRestaurantId(restaurantId);
     }
 
     @Override
-    public List<ChallengeTemplateUserView> getRestaurantChallengeForUser(Long restaurantId, Principal principal) {
+    public List<ChallengeTemplateUserView> findRestaurantChallengeForUser(Long restaurantId, Principal principal) {
         String userId = principal.getName();
         LocalDateTime now = LocalDateTime.now();
 

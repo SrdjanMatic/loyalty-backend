@@ -19,4 +19,5 @@ public record EmployeeDTO(
         @NotNull(message = "Company ID is required")
         Long companyId
 
-) {}
+) {
+}

@@ -1,5 +1,6 @@
 package com.example.loyalty.receipt.repository;
 
+import com.example.loyalty.dashboard.domain.ReceiptCountByDay;
 import com.example.loyalty.receipt.domain.Receipt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -51,6 +52,19 @@ public interface ReceiptRepository extends JpaRepository<Receipt, String> {
             @Param("challengeId") Long challengeId,
             @Param("userId") String userId,
             @Param("afterDate") LocalDateTime afterDate
+    );
+
+    @Query(value = """
+    SELECT DATE(r.receipt_date) AS receipt_date, COUNT(*) AS total
+    FROM receipt r
+    WHERE r.restaurant_id = :restaurantId
+      AND r.receipt_date >= :startDate
+    GROUP BY DATE(r.receipt_date)
+    ORDER BY DATE(r.receipt_date)
+""", nativeQuery = true)
+    List<ReceiptCountByDay> countReceiptsByDayForRestaurant(
+            @Param("restaurantId") Long restaurantId,
+            @Param("startDate") LocalDateTime startDate
     );
 
 }

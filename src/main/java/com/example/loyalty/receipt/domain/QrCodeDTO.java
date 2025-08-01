@@ -1,8 +1,9 @@
 package com.example.loyalty.receipt.domain;
 
-import lombok.Getter;
+import org.apache.logging.log4j.core.config.plugins.validation.constraints.NotBlank;
 
-@Getter
-public class QrCodeDTO {
-    String rowData;
-}
+
+public record QrCodeDTO(
+        @NotBlank(message = "Qr code data can not be empty")
+        String rowData
+) {}

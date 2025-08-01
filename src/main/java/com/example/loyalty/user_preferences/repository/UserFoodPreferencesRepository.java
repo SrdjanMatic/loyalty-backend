@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface UserFoodPreferencesRepository extends JpaRepository<UserFoodPreferences, Long> {
     List<UserFoodPreferences> findByUserId(String userId);
+
+    List<UserFoodPreferences> findByUserIdIn(List<String> userIds);
 }

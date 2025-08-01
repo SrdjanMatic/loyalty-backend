@@ -2,12 +2,18 @@ package com.example.loyalty.restaurant.service;
 
 import com.example.loyalty.coupon.domain.Coupon;
 import com.example.loyalty.coupon.repository.CouponRepository;
-import com.example.loyalty.general.constants.Constants;
 import com.example.loyalty.restaurant.domain.*;
+import com.example.loyalty.restaurant.domain.restaurant_config.ChallengeTemplate;
+import com.example.loyalty.restaurant.domain.restaurant_config.ChallengeTemplateView;
+import com.example.loyalty.restaurant.domain.restaurant_config.RestaurantConfig;
 import com.example.loyalty.restaurant.domain.restaurant_config.RestaurantConfigDataView;
+import com.example.loyalty.restaurant.repository.ChallengeTemplateRepository;
+import com.example.loyalty.restaurant.repository.RestaurantConfigRepository;
 import com.example.loyalty.restaurant.repository.RestaurantRepository;
 import com.example.loyalty.restaurant.security.RestaurantRolePermissionChecker;
+import com.example.loyalty.security.constants.Constants;
 import com.example.loyalty.security.service.KeycloakService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -25,6 +31,8 @@ import java.util.stream.Collectors;
 public class RestaurantServiceImpl implements RestaurantService {
     private final RestaurantRolePermissionChecker rolePermissionsChecker;
     private final RestaurantRepository restaurantRepository;
+    private final ChallengeTemplateRepository challengeTemplateRepository;
+    private final RestaurantConfigRepository restaurantConfigRepository;
     private final CouponRepository couponRepository;
     private final KeycloakService keycloakService;
 
@@ -33,21 +41,46 @@ public class RestaurantServiceImpl implements RestaurantService {
     public Restaurant createRestaurant(RestaurantDTO restaurantDTO, Principal principal) {
         rolePermissionsChecker.canCreateNewRestaurant(principal);
 
-        Restaurant buildRestaurant = getBuildRestaurant(restaurantDTO, restaurantDTO.restaurantAdmin());
+        Restaurant buildRestaurant = buildRestaurant(restaurantDTO, restaurantDTO.restaurantAdmin());
         Restaurant savedRestaurant = restaurantRepository.save(buildRestaurant);
+
+        RestaurantConfig restaurantConfig = buildRestaurantConfig(savedRestaurant);
+        RestaurantConfig savedRestaurantConfig = restaurantConfigRepository.save(restaurantConfig);
+
+        ChallengeTemplate challengeTemplate = buildChallengeTemplate(savedRestaurantConfig);
+        challengeTemplateRepository.save(challengeTemplate);
 
         addRestaurantIdToKeycloakAdminAccount(savedRestaurant, restaurantDTO.restaurantAdmin());
         generateDefaultCoupons(savedRestaurant);
         return savedRestaurant;
     }
 
-    private static Restaurant getBuildRestaurant(RestaurantDTO restaurantDTO, String adminKeycloakId) {
+    private ChallengeTemplate buildChallengeTemplate(RestaurantConfig savedRestaurantConfig) {
+        return ChallengeTemplate.builder()
+                .restaurantConfig(savedRestaurantConfig)
+                .period(7)
+                .visitsRequired(3)
+                .build();
+    }
+
+    private RestaurantConfig buildRestaurantConfig(Restaurant savedRestaurant) {
+        return RestaurantConfig.builder()
+                .fontColor("#222")
+                .restaurant(savedRestaurant)
+                .backgroundColor("#ffffff")
+                .headerAndButtonColor("#bfa16b")
+                .restaurantDisplayName(savedRestaurant.getName())
+                .description("Vaši računi i lojalnost")
+                .build();
+    }
+
+    private  Restaurant buildRestaurant(RestaurantDTO restaurantDTO, String adminKeycloakId) {
         return Restaurant.builder()
                 .name(restaurantDTO.name())
                 .pib(restaurantDTO.pib())
                 .address(restaurantDTO.address())
-                .premiumCouponLimit(1000L)
-                .vipCouponLimit(2000L)
+                .premiumCouponLimit(500L)
+                .vipCouponLimit(800L)
                 .phone(restaurantDTO.phone())
                 .adminKeycloakId(adminKeycloakId)
                 .build();
@@ -59,26 +92,32 @@ public class RestaurantServiceImpl implements RestaurantService {
         keycloakService.addCustomAttributesToUser(customAttributes, adminUserForRestaurant);
     }
 
+    @Override
+    public List<Restaurant> findAllRestaurants(Principal principal) {
+        return restaurantRepository.findAll();
+    }
+
 
     @Override
-    public List<RestaurantWithUserLoyaltyView> getAllRestaurants(Principal principal) {
-//        rolePermissionsChecker.canViewAllRestaurants(principal);
+    public List<RestaurantWithUserLoyaltyView> findAllRestaurantsWithUserLoyalty(Principal principal) {
         return restaurantRepository.findAllWithUserLoyalty(principal.getName());
     }
 
     @Override
-    public Optional<Restaurant> getRestaurantById(Long id) {
-        return restaurantRepository.findById(id);
+    public Restaurant findRestaurantById(Long id) {
+        return restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
     }
 
     @Override
+    @Transactional
     public Restaurant updateRestaurant(Long id, Restaurant updatedRestaurant) {
-        return restaurantRepository.findById(id)
-                .map(existing -> {
-                    existing.setName(updatedRestaurant.getName());
-                    existing.setAddress(updatedRestaurant.getAddress());
-                    return restaurantRepository.save(existing);
-                }).orElseThrow(() -> new RuntimeException("Restaurant not found"));
+
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
+
+        restaurant.setName(updatedRestaurant.getName());
+        restaurant.setAddress(updatedRestaurant.getAddress());
+        return restaurantRepository.save(restaurant);
     }
 
     @Override
@@ -87,30 +126,34 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public RestaurantCouponLevelView getCouponLevel(Long restaurantId, Principal principal) {
-        return restaurantRepository.findById(restaurantId)
-                .map(restaurant -> RestaurantCouponLevelView.builder()
-                        .premiumCouponLimit(restaurant.getPremiumCouponLimit())
-                        .vipCouponLimit(restaurant.getVipCouponLimit())
-                        .build()).orElseThrow(() -> new RuntimeException("Restaurant not found"));
+    public RestaurantCouponLevelView findCouponLevel(Long restaurantId, Principal principal) {
+
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
+
+        return RestaurantCouponLevelView.builder()
+                .premiumCouponLimit(restaurant.getPremiumCouponLimit())
+                .vipCouponLimit(restaurant.getVipCouponLimit())
+                .build();
     }
 
     @Override
-    public void updateCouponLimit(Long id, RestaurantCouponLevelView restaurantCouponLevel) {
-        restaurantRepository.findById(id)
-                .map(restaurant -> {
-                    restaurant.setPremiumCouponLimit(restaurantCouponLevel.getPremiumCouponLimit());
-                    restaurant.setVipCouponLimit(restaurantCouponLevel.getVipCouponLimit());
-                    return restaurantRepository.save(restaurant);
-                }).orElseThrow(() -> new RuntimeException("Restaurant not found"));
+    @Transactional
+    public void updateCouponLimit(Long id, RestaurantCouponLevelDTO restaurantCouponLevel) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
+
+        restaurant.setPremiumCouponLimit(restaurantCouponLevel.premiumCouponLimit());
+        restaurant.setVipCouponLimit(restaurantCouponLevel.vipCouponLimit());
+        restaurantRepository.save(restaurant);
     }
 
     @Override
     @Transactional
     public RestaurantAdminView createRestaurantAdmin(RestaurantAdminDTO restaurantAdminDTO, Principal principal) {
-        //should be allowed only for Sysadmin
+        rolePermissionsChecker.canCreateRestaurantAdmin(principal);
         String adminKeycloakId = keycloakService.createRestaurantAdmin(restaurantAdminDTO.username(), restaurantAdminDTO.email(), restaurantAdminDTO.firstName(), restaurantAdminDTO.lastName(), restaurantAdminDTO.username() + "123!");
-        keycloakService.assignRealmRoleToUser(adminKeycloakId, "Restaurant admin");
+        keycloakService.assignRealmRoleToUser(adminKeycloakId, Constants.RESTAURANT_ADMIN);
 
         UserRepresentation userById = keycloakService.getUserById(adminKeycloakId);
 
@@ -123,8 +166,7 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .build();
     }
 
-    @Override
-    public Set<RestaurantAdminView> getAllRestaurantAdmins(Principal principal) {
+    public Set<RestaurantAdminView> findAllRestaurantAdmins(Principal principal) {
         return keycloakService.getUsersByRealmRole(Constants.RESTAURANT_ADMIN).stream()
                 .map(user -> {
                     String restaurantName = getRestaurantNameFromCustomAttributes(user);
@@ -142,8 +184,15 @@ public class RestaurantServiceImpl implements RestaurantService {
     }
 
     @Override
-    public RestaurantConfigDataView getRestaurantConfigData(Long restaurantId, Principal principal) {
-        return restaurantRepository.findConfigDataRestaurant(restaurantId).orElseThrow(() -> new RuntimeException("Restaurant config data view not found with id " + restaurantId));
+    public RestaurantConfigDataView findRestaurantConfigData(Long restaurantId, Principal principal) {
+        RestaurantConfigDataView config = restaurantRepository
+                .findConfigDataRestaurant(restaurantId)
+                .orElseThrow(() -> new EntityNotFoundException("Restaurant config data view not found with id " + restaurantId));
+
+        List<ChallengeTemplateView> challenges = challengeTemplateRepository.findByRestaurantConfigRestaurantId(config.getId());
+        config.setChallengeList(challenges);
+
+        return config;
     }
 
     private String getRestaurantNameFromCustomAttributes(UserRepresentation user) {

@@ -15,4 +15,6 @@ public interface UserLoyaltyRepository extends JpaRepository<UserLoyalty, Loyalt
     List<Long> findRestaurantIdsByUserId(@Param("userId") String userId);
 
     UserLoyalty findByRestaurantIdAndUserId(Long id, String userId);
+
+    List<UserLoyalty> findByRestaurantId(Long id);
 }

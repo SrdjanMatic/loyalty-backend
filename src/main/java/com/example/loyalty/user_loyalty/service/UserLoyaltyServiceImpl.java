@@ -20,7 +20,7 @@ public class UserLoyaltyServiceImpl implements UserLoyaltyService {
     public void createUserLoyalty(UserLoyaltyDTO userLoyaltyDTO, String name) {
         UserLoyalty userLoyalty = UserLoyalty.builder()
                 .userId(name)
-                .restaurantId(userLoyaltyDTO.getRestaurantId())
+                .restaurantId(userLoyaltyDTO.restaurantId())
                 .joinedAt(LocalDateTime.now())
                 .availablePoints(0L)
                 .level(UserLoyalty.UserLoyaltyLevel.STANDARD)
@@ -31,7 +31,7 @@ public class UserLoyaltyServiceImpl implements UserLoyaltyService {
     }
 
     @Override
-    public UserLoyalty getUserLoyaltyView(Long restaurantId, String name) {
+    public UserLoyalty findUserLoyaltyView(Long restaurantId, String name) {
         return userLoyaltyRepository.findByRestaurantIdAndUserId(restaurantId, name);
     }
 

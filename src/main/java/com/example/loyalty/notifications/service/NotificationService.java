@@ -12,9 +12,9 @@ public interface NotificationService {
 
     Notification create(NotificationDTO notificationDTO, Principal principal);
 
-    Integer getNumberOfUnseenNotification(Principal principal);
+    Integer findNumberOfUnseenNotification(Principal principal);
 
-    List<NotificationView> getAllNotificationsByUserAndMarkAllOfThemAsSeen(Principal principal);
+    List<NotificationView> findAllNotificationsByUserAndMarkAllOfThemAsSeen(Principal principal);
 
-    List<NotificationView> getAllNotificationsByRestaurant(Long restaurantId, Principal principal);
+    List<NotificationView> findAllNotificationsByRestaurant(Long restaurantId, Principal principal);
 }

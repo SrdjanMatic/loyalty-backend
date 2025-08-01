@@ -3,9 +3,11 @@ package com.example.loyalty.notifications.service;
 
 import com.example.loyalty.notifications.domain.Notification;
 import com.example.loyalty.notifications.domain.NotificationDTO;
+import com.example.loyalty.notifications.domain.NotificationMatchType;
 import com.example.loyalty.notifications.domain.NotificationView;
 import com.example.loyalty.notifications.repository.NotificationRepository;
 import com.example.loyalty.notifications.repository.UserNotificationStatusRepository;
+import com.example.loyalty.notifications.security.NotificationRolePermissionChecker;
 import com.example.loyalty.restaurant.domain.Restaurant;
 import com.example.loyalty.restaurant.repository.RestaurantRepository;
 import com.example.loyalty.user_loyalty.repository.UserLoyaltyRepository;
@@ -38,54 +40,58 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserNotificationStatusRepository userNotificationStatusRepository;
     private final UserFoodPreferencesRepository userFoodPreferencesRepository;
     private final UserVisitPreferencesRepository userVisitPreferencesRepository;
+    private final NotificationRolePermissionChecker rolePermissionChecker;
 
     @Override
     @Transactional
     public Notification create(NotificationDTO notificationDTO, Principal principal) {
-
+        rolePermissionChecker.canCreateNotification(principal);
         Notification notification = buildNotification(notificationDTO);
         return notificationRepository.save(notification);
     }
 
     @Override
-    public Integer getNumberOfUnseenNotification(Principal principal) {
-        List<Long> restaurantIdsByUserId = userLoyaltyRepository.findRestaurantIdsByUserId(principal.getName());
+    public Integer findNumberOfUnseenNotification(Principal principal) {
+        String userId = principal.getName();
+        List<Long> restaurantIdsByUserId = userLoyaltyRepository.findRestaurantIdsByUserId(userId);
 
-        Set<String> userFoodPreferences = userFoodPreferencesRepository.findByUserId(principal.getName())
+        Set<String> userFoodPreferences = userFoodPreferencesRepository.findByUserId(userId)
                 .stream()
                 .map(UserFoodPreferences::getPreference)
                 .collect(Collectors.toSet());
-        return notificationRepository.getNumberOfUnseenNotification(principal.getName(), restaurantIdsByUserId,userFoodPreferences);
+
+        return notificationRepository.findNumberOfUnseenNotification(userId, restaurantIdsByUserId, userFoodPreferences);
     }
 
     @Override
-    public List<NotificationView> getAllNotificationsByRestaurant(Long restaurantId, Principal principal) {
-        return notificationRepository.findAllNotificationViewsByRestaurant(restaurantId);
+    public List<NotificationView> findAllNotificationsByRestaurant(Long restaurantId, Principal principal) {
+        rolePermissionChecker.canViewAllRestaurantNotification(principal);
+        return notificationRepository.findAllNotificationsByRestaurant(restaurantId);
     }
 
     @Override
     @Transactional
-    public List<NotificationView> getAllNotificationsByUserAndMarkAllOfThemAsSeen(Principal principal) {
-        List<Long> restaurantIdsByUserId = userLoyaltyRepository.findRestaurantIdsByUserId(principal.getName());
-        Set<String> userFoodPreferences = userFoodPreferencesRepository.findByUserId(principal.getName())
+    public List<NotificationView> findAllNotificationsByUserAndMarkAllOfThemAsSeen(Principal principal) {
+        String userId = principal.getName();
+        List<Long> restaurantIdsByUserId = userLoyaltyRepository.findRestaurantIdsByUserId(userId);
+        Set<String> userFoodPreferences = userFoodPreferencesRepository.findByUserId(userId)
                 .stream()
                 .map(UserFoodPreferences::getPreference)
                 .collect(Collectors.toSet());
-        List<Notification> allNotificationForUserLoyaltyRestaurants = notificationRepository.findAllByRestaurantIdsAndFoodPreferences(restaurantIdsByUserId,userFoodPreferences);
+        List<Notification> allNotificationForUserLoyaltyRestaurants = notificationRepository.findAllByRestaurantIdsAndFoodPreferences(restaurantIdsByUserId, userFoodPreferences);
 
-        for (Notification notification : allNotificationForUserLoyaltyRestaurants) {
-            userNotificationStatusRepository.insertOneIfNotSeen(principal.getName(), notification.getId());
-        }
+        allNotificationForUserLoyaltyRestaurants.forEach(notification ->
+                userNotificationStatusRepository.insertOneIfNotSeen(userId, notification.getId()));
 
 
-        Set<String> userVisitPreferences = userVisitPreferencesRepository.findByUserId(principal.getName())
+        Set<String> userVisitPreferences = userVisitPreferencesRepository.findByUserId(userId)
                 .stream()
                 .map(userVisitPreference -> userVisitPreference.getDayOfWeek() + "-" + userVisitPreference.getPartOfDay())
                 .collect(Collectors.toSet());
 
         return allNotificationForUserLoyaltyRestaurants.stream()
                 .map(notification -> mapToNotificationView(notification, userFoodPreferences, userVisitPreferences))
-                .filter(notificationView -> !notificationView.getType().equals("no_match") && !notificationView.getType().equals("unknown"))
+                .filter(notificationView -> !notificationView.getType().equals(NotificationMatchType.NO_MATCH) && !notificationView.getType().equals(NotificationMatchType.UNKNOWN))
                 .toList();
     }
 
@@ -104,40 +110,38 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private NotificationView mapToNotificationView(Notification notification, Set<String> userFoodPreferences, Set<String> userVisitPreferences) {
-        String notificationType = getNotificationType(notification, userFoodPreferences, userVisitPreferences);
+        NotificationMatchType notificationType = getNotificationType(notification, userFoodPreferences, userVisitPreferences);
         return NotificationView.builder()
                 .title(notification.getTitle())
                 .restaurantName(notification.getRestaurant().getName())
                 .validFrom(notification.getValidFrom())
-                .type(notificationType)
+                .type(notificationType.toString())
                 .validUntil(notification.getValidUntil())
                 .foodType(notification.getFoodType())
                 .partOfDay(notification.getPartOfDay())
                 .build();
     }
 
-    private static String getNotificationType(Notification notification, Set<String> userFoodPreferences, Set<String> userVisitPreferences) {
+    private static NotificationMatchType getNotificationType(Notification notification, Set<String> userFoodPreferences, Set<String> userVisitPreferences) {
         if (notification == null || userFoodPreferences == null || userVisitPreferences == null) {
-            return "unknown";
+            return NotificationMatchType.UNKNOWN;
         }
 
         String foodType = notification.getFoodType();
         String partOfDay = notification.getPartOfDay();
         String dayOfWeek = notification.getValidFrom().getDayOfWeek().getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-        ;
 
         String visitKey = dayOfWeek + "-" + partOfDay;
 
         boolean matchesFood = userFoodPreferences.contains(foodType);
         boolean matchesVisit = userVisitPreferences.contains(visitKey);
 
-        // Should be enum also in DB
         if (matchesFood && matchesVisit) {
-            return "perfect_match";
+            return NotificationMatchType.PERFECT_MATCH;
         } else if (matchesFood) {
-            return "food_match";
+            return NotificationMatchType.FOOD_MATCH;
         } else {
-            return "no_match";
+            return NotificationMatchType.NO_MATCH;
         }
     }
 }

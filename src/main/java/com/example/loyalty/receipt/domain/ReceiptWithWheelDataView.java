@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 @Data
@@ -13,5 +14,6 @@ import java.util.ArrayList;
 @Builder
 public class ReceiptWithWheelDataView {
     private String receiptKey;
+    private Long receiptPoints;
     private ArrayList<Long> wheelData;
 }

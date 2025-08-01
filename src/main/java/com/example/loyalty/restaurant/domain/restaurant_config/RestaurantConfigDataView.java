@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -16,8 +18,34 @@ public class RestaurantConfigDataView {
     private String headerAndButtonColor;
     private String logo;
     private String backgroundImage;
-    private String restaurantName;
+    private String restaurantDisplayName;
     private String description;
     private Long premiumCouponLimit;
     private Long vipCouponLimit;
+    private List<ChallengeTemplateView> challengeList;
+
+    public RestaurantConfigDataView(
+            Long id,
+            String fontColor,
+            String backgroundColor,
+            String headerAndButtonColor,
+            String logo,
+            String backgroundImage,
+            String restaurantDisplayName,
+            String description,
+            Long premiumCouponLimit,
+            Long vipCouponLimit
+    ) {
+        this.id = id;
+        this.fontColor = fontColor;
+        this.backgroundColor = backgroundColor;
+        this.headerAndButtonColor = headerAndButtonColor;
+        this.logo = logo;
+        this.backgroundImage = backgroundImage;
+        this.restaurantDisplayName = restaurantDisplayName;
+        this.description = description;
+        this.premiumCouponLimit = premiumCouponLimit;
+        this.vipCouponLimit = vipCouponLimit;
+    }
+
 }

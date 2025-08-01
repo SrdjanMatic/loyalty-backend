@@ -16,11 +16,11 @@ public class EmployeeRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canViewAllEmployee(Principal principal) {
+    public void canViewAllEmployees(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 
-    public void canCreateNewEmployee(Principal principal) {
+    public void canCreateEmployee(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 
@@ -32,7 +32,7 @@ public class EmployeeRolePermissionChecker {
         List<String> roles = rolePermissionsChecker.getRoles(principal);
 
         if (!roles.contains(SYSTEM_ADMIN)) {
-            throw new AccessDeniedException("Unauthorized: You do not have permission to view all restaurants.");
+            throw new AccessDeniedException("Unauthorized: You do not have permission for this action.");
         }
     }
 }

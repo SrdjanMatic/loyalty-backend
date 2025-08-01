@@ -25,7 +25,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
         AND uns.notification_id = n.id
     )
 """, nativeQuery = true)
-    Integer getNumberOfUnseenNotification(
+    Integer findNumberOfUnseenNotification(
             @Param("userId") String userId,
             @Param("restaurantIds") List<Long> restaurantIds,
             @Param("userFoodPreferences") Set<String> userFoodPreferences
@@ -52,7 +52,7 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     FROM Notification n
     WHERE n.restaurant.id = :restaurantId
 """)
-    List<NotificationView> findAllNotificationViewsByRestaurant(@Param("restaurantId") Long restaurantId);
+    List<NotificationView> findAllNotificationsByRestaurant(@Param("restaurantId") Long restaurantId);
 
 
 }

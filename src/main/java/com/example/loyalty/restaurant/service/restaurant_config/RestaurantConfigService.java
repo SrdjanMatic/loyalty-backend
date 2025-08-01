@@ -11,7 +11,7 @@ import java.util.List;
 public interface RestaurantConfigService {
     RestaurantConfig createRestaurantConfig(RestaurantConfigDTO restaurantConfigDTO, Principal principal);
 
-    List<ChallengeTemplateView> getRestaurantChallenge(Long restaurantId, Principal principal);
+    List<ChallengeTemplateView> findRestaurantChallenge(Long restaurantId, Principal principal);
 
-    List<ChallengeTemplateUserView> getRestaurantChallengeForUser(Long restaurantId, Principal principal);
+    List<ChallengeTemplateUserView> findRestaurantChallengeForUser(Long restaurantId, Principal principal);
 }
