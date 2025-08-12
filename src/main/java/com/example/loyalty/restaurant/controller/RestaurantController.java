@@ -20,13 +20,29 @@ public class RestaurantController {
     private final RestaurantServiceImpl service;
 
     @PostMapping
-    public Restaurant create(@RequestBody @Valid RestaurantDTO restaurantDTO, Principal principal) {
-        return service.createRestaurant(restaurantDTO, principal);
+    public Restaurant create(@RequestBody @Valid CreateRestaurantDTO restaurantDTO, Principal principal) {
+        return service.create(restaurantDTO, principal);
+    }
+
+    @PutMapping("/{id}")
+    public Restaurant update(@PathVariable Long id, @RequestBody @Valid UpdateRestaurantDTO restaurantDTO, Principal principal) {
+        return service.update(id,restaurantDTO, principal);
     }
 
     @PostMapping("/restaurant-admin")
-    public RestaurantAdminView createRestaurantAdmin(@RequestBody @Valid RestaurantAdminDTO restaurantAdminDTO, Principal principal) {
+    public RestaurantAdminView createRestaurantAdmin(@RequestBody @Valid CreateRestaurantAdminDTO restaurantAdminDTO, Principal principal) {
         return service.createRestaurantAdmin(restaurantAdminDTO, principal);
+    }
+
+    @PutMapping("/restaurant-admin/{id}")
+    public RestaurantAdminView updateRestaurantAdmin(@PathVariable String id, @RequestBody @Valid UpdateRestaurantAdminDTO restaurantAdminDTO, Principal principal) {
+        return service.updateRestaurantAdmin(id, restaurantAdminDTO, principal);
+    }
+
+    @DeleteMapping("/restaurant-admin/{id}")
+    public ResponseEntity<Void> delete(@PathVariable String id, Principal principal) {
+        service.deleteRestaurantAdmin(id, principal);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
@@ -59,10 +75,6 @@ public class RestaurantController {
         return service.findRestaurantById(id);
     }
 
-    @PutMapping("/{id}")
-    public Restaurant update(@PathVariable Long id, @RequestBody @Valid Restaurant restaurant) {
-        return service.updateRestaurant(id, restaurant);
-    }
 
     @PutMapping("/coupon-limit/{id}")
     public ResponseEntity<Void> updateCouponLimit(@PathVariable Long id, @RequestBody @Valid RestaurantCouponLevelDTO restaurantCouponLevel) {

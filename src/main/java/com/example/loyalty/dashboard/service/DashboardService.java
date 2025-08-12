@@ -1,9 +1,9 @@
 package com.example.loyalty.dashboard.service;
 
-import com.example.loyalty.dashboard.domain.Dashboard;
+import com.example.loyalty.dashboard.domain.DashboardView;
 
 import java.security.Principal;
 
 public interface DashboardService {
-    Dashboard findDashboardStatisticsForRestaurant(Long restaurantId, Principal principal);
+    DashboardView findDashboardStatisticsForRestaurant(Long restaurantId, Principal principal);
 }

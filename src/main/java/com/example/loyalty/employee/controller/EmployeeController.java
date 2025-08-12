@@ -1,7 +1,7 @@
 package com.example.loyalty.employee.controller;
 
-import com.example.loyalty.employee.domain.Employee;
-import com.example.loyalty.employee.domain.EmployeeDTO;
+import com.example.loyalty.employee.domain.EmployeeCreateDTO;
+import com.example.loyalty.employee.domain.EmployeeUpdateDTO;
 import com.example.loyalty.employee.domain.EmployeeView;
 import com.example.loyalty.employee.service.EmployeeServiceImpl;
 import jakarta.validation.Valid;
@@ -19,18 +19,24 @@ public class EmployeeController {
     private final EmployeeServiceImpl service;
 
     @PostMapping
-    public Employee create(@RequestBody @Valid EmployeeDTO employeeDTO, Principal principal) {
+    public EmployeeView create(@RequestBody @Valid EmployeeCreateDTO employeeDTO, Principal principal) {
         return service.create(employeeDTO, principal);
     }
 
-    @GetMapping("/{companyId}")
-    public List<EmployeeView> getAll(@PathVariable Long companyId, Principal principal) {
+    @PutMapping("/{id}")
+    public EmployeeView update(@PathVariable Long id,
+                               @RequestBody @Valid EmployeeUpdateDTO employeeDTO, Principal principal) {
+        return service.update(id, employeeDTO, principal);
+    }
+
+    @GetMapping
+    public List<EmployeeView> getAll(@RequestParam("companyId") Long companyId, Principal principal) {
         return service.findAllByCompanyId(companyId, principal);
     }
 
-    @DeleteMapping("/{employeeId}")
-    public ResponseEntity<Void> deleteEmployee(@PathVariable Long employeeId, Principal principal) {
-        service.deleteEmployee(employeeId, principal);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id, Principal principal) {
+        service.deleteEmployee(id, principal);
         return ResponseEntity.noContent().build();
     }
 }

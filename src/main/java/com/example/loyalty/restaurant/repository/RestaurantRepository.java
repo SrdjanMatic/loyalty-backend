@@ -46,4 +46,6 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
 
 
     Optional<Restaurant> findFirstByPib(String pib);
+
+    Optional<Restaurant> findByAdminKeycloakId(String id);
 }

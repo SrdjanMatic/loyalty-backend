@@ -25,3 +25,5 @@ databaseChangeLog:
       file: db/changelog/changelog-create-challenge-template-table.sql
   - include:
       file: db/changelog/changelog-create-receipt-challenge-usage-table.sql
+  - include:
+      file: db/changelog/changelog-create-vip-restaurant-discount-table.sql

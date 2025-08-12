@@ -17,7 +17,7 @@ public class VipRestaurantRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canCreateVipRestaurantAdmin(Principal principal) {
+    public void canCreateUpdateDeleteVipRestaurant(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 

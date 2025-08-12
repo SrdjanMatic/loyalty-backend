@@ -1,6 +1,6 @@
 package com.example.loyalty.dashboard.controller;
 
-import com.example.loyalty.dashboard.domain.Dashboard;
+import com.example.loyalty.dashboard.domain.DashboardView;
 import com.example.loyalty.dashboard.service.DashboardServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ public class DashboardController {
     private final DashboardServiceImpl dashboardService;
 
     @GetMapping("/{restaurantId}")
-    public Dashboard getDashboardStatisticsForRestaurant(@PathVariable Long restaurantId, Principal principal) {
+    public DashboardView getDashboardStatisticsForRestaurant(@PathVariable Long restaurantId, Principal principal) {
         return dashboardService.findDashboardStatisticsForRestaurant(restaurantId,principal);
     }
 }

@@ -2,11 +2,11 @@ package com.example.loyalty.coupon.service;
 
 import com.example.loyalty.coupon.domain.Coupon;
 import com.example.loyalty.coupon.domain.CouponDTO;
+import com.example.loyalty.coupon.domain.CouponView;
 import com.example.loyalty.coupon.repository.CouponRepository;
 import com.example.loyalty.coupon.security.CouponRolePermissionChecker;
 import com.example.loyalty.restaurant.domain.Restaurant;
 import com.example.loyalty.restaurant.repository.RestaurantRepository;
-import com.example.loyalty.restaurant.security.RestaurantRolePermissionChecker;
 import com.example.loyalty.user_loyalty.domain.UserLoyalty;
 import com.example.loyalty.user_loyalty.repository.UserLoyaltyRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -31,34 +31,65 @@ public class CouponServiceImpl implements CouponService {
 
 
     @Override
-    public List<Coupon> findAllByRestaurantId(Long restaurantId) {
+    public List<CouponView> findAllByRestaurantId(Long restaurantId) {
         return couponRepository.findByRestaurantId(restaurantId);
     }
 
     @Override
     @Transactional
-    public Coupon create(CouponDTO couponDto,Principal principal) {
-        rolePermissionsChecker.canCreateNewCoupon(principal);
+    public CouponView create(CouponDTO couponDto, Principal principal) {
+        rolePermissionsChecker.canCreateAndUpdateCoupon(principal);
         Coupon coupon = buildCoupon(couponDto);
-        return couponRepository.save(coupon);
+        Coupon saved = couponRepository.save(coupon);
+        return couponRepository.findById(saved.getId(), CouponView.class)
+                .orElseThrow(() -> new IllegalStateException("Created coupon not found"));
+
     }
 
     @Override
-    public List<Coupon> findAllByRestaurantIdAndCouponLevel(Long restaurantId, Principal principal) {
+    @Transactional
+    public CouponView update(Long id, CouponDTO couponDTO, Principal principal) {
+        rolePermissionsChecker.canCreateAndUpdateCoupon(principal);
+        Coupon coupon = couponRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Coupon Not Found"));
+
+        coupon.setName(couponDTO.name());
+        coupon.setDescription(couponDTO.description());
+        coupon.setLevel(couponDTO.level());
+        coupon.setPoints(couponDTO.points());
+        coupon.setUpdatedAt(LocalDateTime.now());
+        Coupon saved = couponRepository.save(coupon);
+
+        return couponRepository.findById(saved.getId(), CouponView.class)
+                .orElseThrow(() -> new IllegalStateException("Created coupon not found"));
+    }
+
+    @Override
+    public List<CouponView> findAllByRestaurantIdAndCouponLevel(Long restaurantId, Principal principal) {
         UserLoyalty userLoyalty = userLoyaltyRepository.findByRestaurantIdAndUserId(restaurantId, principal.getName());
         if (userLoyalty == null) {
             throw new EntityNotFoundException("User loyalty not found for user=" + principal.getName() + ", restaurantId=" + restaurantId);
         }
 
         UserLoyalty.UserLoyaltyLevel level = userLoyalty.getLevel();
-        List<Coupon> allCoupons = couponRepository.findByRestaurantId(restaurantId);
+        List<CouponView> allCoupons = couponRepository.findByRestaurantId(restaurantId);
 
         return allCoupons.stream()
                 .filter(coupon -> isCouponEligible(coupon, level))
                 .toList();
     }
 
-    private boolean isCouponEligible(Coupon coupon, UserLoyalty.UserLoyaltyLevel level) {
+    @Override
+    @Transactional
+    public void delete(Long id, Principal principal) {
+        rolePermissionsChecker.canDeleteCoupon(principal);
+
+        couponRepository.deleteById(id);
+
+    }
+
+
+
+    private boolean isCouponEligible(CouponView coupon, UserLoyalty.UserLoyaltyLevel level) {
         return switch (level) {
             case STANDARD -> coupon.getLevel() == Coupon.Level.STANDARD;
             case PREMIUM -> coupon.getLevel() == Coupon.Level.STANDARD || coupon.getLevel() == Coupon.Level.PREMIUM;

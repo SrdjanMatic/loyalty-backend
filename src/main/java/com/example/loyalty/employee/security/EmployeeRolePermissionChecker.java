@@ -20,7 +20,7 @@ public class EmployeeRolePermissionChecker {
         checkIfUserIsSystemAdmin(principal);
     }
 
-    public void canCreateEmployee(Principal principal) {
+    public void canCreateOrUpdateEmployee(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 

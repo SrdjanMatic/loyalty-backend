@@ -16,9 +16,14 @@ public class CompanyRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canCreateNewCompany(Principal principal) {
+    public void canCreateOrUpdateCompany(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
+
+    public void canDeleteCompany(Principal principal) {
+        checkIfUserIsSystemAdmin(principal);
+    }
+
     public void canViewAllCompanies(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }

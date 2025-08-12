@@ -24,14 +24,14 @@ public class UserLoyaltyController {
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
-    @GetMapping("/{restaurantId}")
-    public UserLoyalty getUserLoyaltyView(@PathVariable Long restaurantId, Principal principal) {
-        return service.findUserLoyaltyView(restaurantId,principal.getName());
+    @GetMapping
+    public UserLoyalty getUserLoyaltyView(@RequestParam Long restaurantId, Principal principal) {
+        return service.findUserLoyaltyView(restaurantId, principal.getName());
     }
 
-    @PostMapping("/promote-user/{restaurantId}")
-    public UserLoyalty promoteUser(@PathVariable Long restaurantId, Principal principal) {
-        return service.promoteUser(restaurantId,principal.getName());
+    @PostMapping("/promote-user")
+    public UserLoyalty promoteUser(@RequestParam Long restaurantId, Principal principal) {
+        return service.promoteUser(restaurantId, principal.getName());
     }
 
 }

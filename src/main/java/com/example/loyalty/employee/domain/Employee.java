@@ -13,6 +13,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class Employee extends AbstractBaseEntity {
+
     private String email;
 
     private String firstName;

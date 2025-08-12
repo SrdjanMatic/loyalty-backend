@@ -20,8 +20,8 @@ public class ReceiptController {
 
     private final ReceiptServiceImpl service;
 
-    @GetMapping("/{restaurantId}")
-    public List<Receipt> getAll(@PathVariable Long restaurantId, Principal principal) {
+    @GetMapping
+    public List<Receipt> getAll(@RequestParam Long restaurantId, Principal principal) {
         return service.getAllByRestaurantAndUser(restaurantId, principal.getName());
     }
 

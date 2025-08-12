@@ -17,7 +17,11 @@ public class CouponRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canCreateNewCoupon(Principal principal) {
+    public void canCreateAndUpdateCoupon(Principal principal) {
+        checkIfUserIsSystemAdminOrRestaurantAdmin(principal);
+    }
+
+    public void canDeleteCoupon(Principal principal) {
         checkIfUserIsSystemAdminOrRestaurantAdmin(principal);
     }
 

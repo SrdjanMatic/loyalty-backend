@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,10 +39,10 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Override
     @Transactional
-    public Restaurant createRestaurant(RestaurantDTO restaurantDTO, Principal principal) {
+    public Restaurant create(CreateRestaurantDTO restaurantDTO, Principal principal) {
         rolePermissionsChecker.canCreateNewRestaurant(principal);
 
-        Restaurant buildRestaurant = buildRestaurant(restaurantDTO, restaurantDTO.restaurantAdmin());
+        Restaurant buildRestaurant = buildRestaurant(restaurantDTO, restaurantDTO.adminKeycloakId());
         Restaurant savedRestaurant = restaurantRepository.save(buildRestaurant);
 
         RestaurantConfig restaurantConfig = buildRestaurantConfig(savedRestaurant);
@@ -50,9 +51,26 @@ public class RestaurantServiceImpl implements RestaurantService {
         ChallengeTemplate challengeTemplate = buildChallengeTemplate(savedRestaurantConfig);
         challengeTemplateRepository.save(challengeTemplate);
 
-        addRestaurantIdToKeycloakAdminAccount(savedRestaurant, restaurantDTO.restaurantAdmin());
+        addRestaurantIdToKeycloakAdminAccount(savedRestaurant, restaurantDTO.adminKeycloakId());
         generateDefaultCoupons(savedRestaurant);
         return savedRestaurant;
+    }
+
+    @Override
+    public Restaurant update(Long restaurantId, UpdateRestaurantDTO restaurantDTO, Principal principal) {
+        rolePermissionsChecker.canUpdateRestaurant(principal);
+
+        Restaurant restaurant = restaurantRepository.findById(restaurantId).orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
+
+        restaurant.setPhone(restaurantDTO.phone());
+        restaurant.setName(restaurantDTO.name());
+        restaurant.setAddress(restaurantDTO.address());
+        restaurant.setAdminKeycloakId(restaurantDTO.adminKeycloakId());
+
+        return restaurantRepository.save(restaurant);
+
+
+
     }
 
     private ChallengeTemplate buildChallengeTemplate(RestaurantConfig savedRestaurantConfig) {
@@ -74,7 +92,7 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .build();
     }
 
-    private  Restaurant buildRestaurant(RestaurantDTO restaurantDTO, String adminKeycloakId) {
+    private Restaurant buildRestaurant(CreateRestaurantDTO restaurantDTO, String adminKeycloakId) {
         return Restaurant.builder()
                 .name(restaurantDTO.name())
                 .pib(restaurantDTO.pib())
@@ -108,17 +126,7 @@ public class RestaurantServiceImpl implements RestaurantService {
         return restaurantRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
     }
 
-    @Override
-    @Transactional
-    public Restaurant updateRestaurant(Long id, Restaurant updatedRestaurant) {
 
-        Restaurant restaurant = restaurantRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Restaurant not found"));
-
-        restaurant.setName(updatedRestaurant.getName());
-        restaurant.setAddress(updatedRestaurant.getAddress());
-        return restaurantRepository.save(restaurant);
-    }
 
     @Override
     public void deleteRestaurant(Long id) {
@@ -150,9 +158,20 @@ public class RestaurantServiceImpl implements RestaurantService {
 
     @Override
     @Transactional
-    public RestaurantAdminView createRestaurantAdmin(RestaurantAdminDTO restaurantAdminDTO, Principal principal) {
-        rolePermissionsChecker.canCreateRestaurantAdmin(principal);
-        String adminKeycloakId = keycloakService.createRestaurantAdmin(restaurantAdminDTO.username(), restaurantAdminDTO.email(), restaurantAdminDTO.firstName(), restaurantAdminDTO.lastName(), restaurantAdminDTO.username() + "123!");
+    public RestaurantAdminView createRestaurantAdmin(CreateRestaurantAdminDTO restaurantAdminDTO, Principal principal) {
+        rolePermissionsChecker.canCreateOrUpdateRestaurantAdmin(principal);
+
+        UserRepresentation userExist = keycloakService.getUserByUsername(restaurantAdminDTO.username());
+        String adminKeycloakId;
+        if (userExist == null) {
+            adminKeycloakId = keycloakService.createRestaurantAdmin(restaurantAdminDTO.username(), restaurantAdminDTO.email(), restaurantAdminDTO.firstName(), restaurantAdminDTO.lastName(), restaurantAdminDTO.username() + "123!");
+            if (adminKeycloakId == null) {
+                throw new RuntimeException("Failed to create restaurant admin user in Keycloak.");
+            }
+        } else {
+            adminKeycloakId = userExist.getId();
+        }
+
         keycloakService.assignRealmRoleToUser(adminKeycloakId, Constants.RESTAURANT_ADMIN);
 
         UserRepresentation userById = keycloakService.getUserById(adminKeycloakId);
@@ -165,6 +184,41 @@ public class RestaurantServiceImpl implements RestaurantService {
                 .lastName(userById.getLastName())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public RestaurantAdminView updateRestaurantAdmin(String id, UpdateRestaurantAdminDTO restaurantAdminDTO, Principal principal) {
+        rolePermissionsChecker.canCreateOrUpdateRestaurantAdmin(principal);
+
+        keycloakService.updateRestaurantAdmin(id, restaurantAdminDTO);
+
+        UserRepresentation userById = keycloakService.getUserById(id);
+
+
+        return RestaurantAdminView.builder()
+                .username(userById.getUsername())
+                .email(userById.getEmail())
+                .firstName(userById.getFirstName())
+                .keycloakId(id)
+                .lastName(userById.getLastName())
+                .build();
+    }
+
+
+
+    @Override
+    @Transactional
+    public void deleteRestaurantAdmin(String id, Principal principal) {
+        rolePermissionsChecker.canDeleteRestaurantAdmin(principal);
+
+        restaurantRepository.findByAdminKeycloakId(id)
+                .ifPresent(r -> {
+                    throw new IllegalStateException("Cannot delete admin because restaurant uses admin");
+                });
+        keycloakService.deleteRestaurantAdmin(id);
+    }
+
+
 
     public Set<RestaurantAdminView> findAllRestaurantAdmins(Principal principal) {
         return keycloakService.getUsersByRealmRole(Constants.RESTAURANT_ADMIN).stream()
@@ -194,6 +248,7 @@ public class RestaurantServiceImpl implements RestaurantService {
 
         return config;
     }
+
 
     private String getRestaurantNameFromCustomAttributes(UserRepresentation user) {
         String restaurantIdStr = Optional.ofNullable(user.getAttributes())
@@ -234,12 +289,13 @@ public class RestaurantServiceImpl implements RestaurantService {
         );
 
         List<Coupon> coupons = defaultCoupons.stream()
-                .map(def -> Coupon.builder()
+                .map(def -> (Coupon) Coupon.builder()
                         .name(def.name())
                         .description(def.description())
                         .level(def.level)
                         .points(def.points())
                         .restaurant(restaurant)
+                        .createdAt(LocalDateTime.now())
                         .build())
                 .toList();
 

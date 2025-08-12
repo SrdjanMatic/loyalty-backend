@@ -1,37 +1,38 @@
 package com.example.loyalty.restaurant.domain;
 
+import com.example.loyalty.base.domain.AbstractBaseEntity;
+import com.example.loyalty.coupon.domain.Coupon;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.Map;
 
+@EqualsAndHashCode(callSuper = true)
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class VipRestaurant {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class VipRestaurant extends AbstractBaseEntity {
 
     @OneToOne
     @JoinColumn(name = "restaurant_id")
     private Restaurant restaurant;
 
-    private BigDecimal discount;
+    private BigDecimal generalDiscount;
 
     private String backgroundImage;
 
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "vip_restaurant_discount",
+            joinColumns = @JoinColumn(name = "vip_restaurant_id")
+    )
+    @MapKeyColumn(name = "level")
+    @Column(name = "discount")
+    @MapKeyEnumerated(EnumType.STRING)
+    private Map<Coupon.Level, BigDecimal> levelDiscounts;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-    }
 }

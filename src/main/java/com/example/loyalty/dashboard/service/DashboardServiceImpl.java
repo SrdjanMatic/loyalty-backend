@@ -1,6 +1,6 @@
 package com.example.loyalty.dashboard.service;
 
-import com.example.loyalty.dashboard.domain.Dashboard;
+import com.example.loyalty.dashboard.domain.DashboardView;
 import com.example.loyalty.dashboard.domain.ReceiptCountByDay;
 import com.example.loyalty.dashboard.security.DashboardRolePermissionChecker;
 import com.example.loyalty.receipt.repository.ReceiptRepository;
@@ -39,7 +39,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    public Dashboard findDashboardStatisticsForRestaurant(Long restaurantId, Principal principal) {
+    public DashboardView findDashboardStatisticsForRestaurant(Long restaurantId, Principal principal) {
         rolePermissionsChecker.canViewAllRestaurantsStatistics(principal);
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new EntityNotFoundException("Restaurant not found with id " + restaurantId));
@@ -50,7 +50,7 @@ public class DashboardServiceImpl implements DashboardService {
 
         Map<LocalDate, Long> dailyCounts = getReceiptPerDay(restaurantId,DEFAULT_PAST_DAYS);
 
-        return Dashboard.builder()
+        return DashboardView.builder()
                 .restaurantName(restaurant.getName())
                 .pib(restaurant.getPib())
                 .address(restaurant.getAddress())

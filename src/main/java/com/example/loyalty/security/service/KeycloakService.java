@@ -1,5 +1,9 @@
 package com.example.loyalty.security.service;
 
+import com.example.loyalty.restaurant.domain.UpdateRestaurantAdminDTO;
+import com.example.loyalty.security.constants.Constants;
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.ws.rs.NotFoundException;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.keycloak.admin.client.Keycloak;
@@ -38,6 +42,16 @@ public class KeycloakService {
         userResource.roles().realmLevel().add(List.of(roleRepresentation));
     }
 
+    public void removeRealmRoleFromUser(String userId, String roleName) {
+        UserResource userResource = keycloak.realm(realm).users().get(userId);
+        RoleRepresentation roleRepresentation = keycloak.realm(realm)
+                .roles()
+                .get(roleName)
+                .toRepresentation();
+
+        userResource.roles().realmLevel().remove(List.of(roleRepresentation));
+    }
+
     public UserRepresentation getUserById(String userId) {
         return keycloak
                 .realm(realm)
@@ -49,6 +63,55 @@ public class KeycloakService {
     public Set<UserRepresentation> getUsersByRealmRole(String roleName) {
         RoleResource roleResource = keycloak.realm(realm).roles().get(roleName);
         return roleResource.getRoleUserMembers();
+    }
+
+    public void deleteRestaurantAdmin(String userId) {
+        UsersResource usersResource = keycloak.realm(realm).users();
+
+        try {
+            var user = usersResource.get(userId);
+            if (user.toRepresentation() == null) {
+                throw new EntityNotFoundException("User not found: " + userId);
+            }
+
+          removeRealmRoleFromUser(userId, Constants.RESTAURANT_ADMIN);
+        } catch (NotFoundException e) {
+            throw new EntityNotFoundException("User not found: " + userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to delete user: " + userId, e);
+        }
+    }
+
+    public UserRepresentation getUserByUsername(String username) {
+        UsersResource usersResource = keycloak.realm(realm).users();
+
+        try {
+            // Search users by username (exact match)
+            List<UserRepresentation> users = usersResource.search(username, 0, 1);
+            if (users.isEmpty()) {
+                throw new EntityNotFoundException("User not found with username: " + username);
+            }
+            return users.get(0);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get user by username: " + username, e);
+        }
+    }
+
+    public void updateRestaurantAdmin(String userId, UpdateRestaurantAdminDTO restaurantAdminDTO) {
+        UsersResource usersResource = keycloak.realm(realm).users();
+        UserResource userResource = usersResource.get(userId);
+
+        // Fetch existing user
+        UserRepresentation existingUser = userResource.toRepresentation();
+        if (existingUser == null) {
+            throw new EntityNotFoundException("User not found: " + userId);
+        }
+
+        existingUser.setEmail(restaurantAdminDTO.email());
+        existingUser.setFirstName(restaurantAdminDTO.firstName());
+        existingUser.setLastName(restaurantAdminDTO.lastName());
+
+        userResource.update(existingUser);
     }
 
     public String createRestaurantAdmin(String username, String email, String firstName,String lastName, String password) {

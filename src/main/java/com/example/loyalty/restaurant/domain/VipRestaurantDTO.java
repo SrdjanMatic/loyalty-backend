@@ -7,10 +7,18 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 public record VipRestaurantDTO(
-        @NotNull
         @Min(1)
-        @Max(100)
+        @Max(40)
         BigDecimal discount,
+        @Min(1)
+        @Max(40)
+        BigDecimal standardDiscount,
+        @Min(1)
+        @Max(40)
+        BigDecimal vipDiscount,
+        @Min(1)
+        @Max(40)
+        BigDecimal premiumDiscount,
         @NotNull
         Long restaurantId,
         String backgroundImage

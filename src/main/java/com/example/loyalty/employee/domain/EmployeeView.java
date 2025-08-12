@@ -5,4 +5,5 @@ public interface EmployeeView {
     String getEmail();
     String getFirstName();
     String getLastName();
+    Long getCompanyId();
 }

@@ -1,6 +1,5 @@
 package com.example.loyalty.restaurant.security;
 
-import com.example.loyalty.restaurant.service.RestaurantService;
 import com.example.loyalty.security.service.RolePermissionsChecker;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -18,12 +17,20 @@ public class RestaurantRolePermissionChecker {
 
     private final RolePermissionsChecker rolePermissionsChecker;
 
-    public void canCreateRestaurantAdmin(Principal principal) {
+    public void canCreateOrUpdateRestaurantAdmin(Principal principal) {
+        checkIfUserIsSystemAdmin(principal);
+    }
+
+    public void canDeleteRestaurantAdmin(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
     }
 
     public void canCreateNewRestaurant(Principal principal) {
         checkIfUserIsSystemAdmin(principal);
+    }
+
+    public void canUpdateRestaurant(Principal principal) {
+        checkIfUserIsSystemAdminOrRestaurantAdmin(principal);
     }
 
     private void checkIfUserIsSystemAdmin(Principal principal) {
