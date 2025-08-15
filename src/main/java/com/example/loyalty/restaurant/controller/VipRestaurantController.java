@@ -4,6 +4,7 @@ import com.example.loyalty.company.domain.CompanyDTO;
 import com.example.loyalty.company.domain.CompanyView;
 import com.example.loyalty.restaurant.domain.VipRestaurant;
 import com.example.loyalty.restaurant.domain.VipRestaurantDTO;
+import com.example.loyalty.restaurant.domain.VipRestaurantUserView;
 import com.example.loyalty.restaurant.domain.VipRestaurantView;
 import com.example.loyalty.restaurant.service.vip_restaurant.VipRestaurantServiceImpl;
 import jakarta.validation.Valid;
@@ -30,6 +31,11 @@ public class VipRestaurantController {
     @GetMapping
     public List<VipRestaurantView> getAll(Principal principal) {
         return service.findAll();
+    }
+
+    @GetMapping("/user")
+    public List<VipRestaurantUserView> getAllByUser(Principal principal) {
+        return service.findAllByUser(principal);
     }
 
     @DeleteMapping("/{id}")

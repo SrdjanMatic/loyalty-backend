@@ -6,7 +6,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8085/realms/loyalty
+          issuer-uri: http://localhost:8080/realms/loyalty
 
   datasource:
     url: jdbc:postgresql://localhost:5435/loyalty_db
@@ -24,11 +24,25 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+app:
+  cors:
+    allowed-origins:
+      - "http://localhost:3000"
+      - "http://localhost:3001"
+    allowed-methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed-headers:
+      - "*"
+    allow-credentials: true
 keycloak:
-  server-url: http://localhost:8085
+  server-url: http://localhost:8080
   realm: loyalty
   client-id: loyalty-backend
-  client-secret: YcceSjFecjtj3MthFQejmbjxH3LjQzG5
+  client-secret: aUNKISDoLUvSdQsHNFHlopqbU1gPrPBD
 
 logging:
   level:
