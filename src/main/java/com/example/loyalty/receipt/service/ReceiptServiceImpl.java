@@ -66,7 +66,7 @@ public class ReceiptServiceImpl implements ReceiptService {
 //            String invoiceNumber = doc.select("#invoiceNumberLabel").text();
             String invoiceNumber = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
 //            String receiptDate = doc.select("#sdcDateTimeLabel").text();
-            String receiptDate = "29.07.2025. 23:25:44";
+            String receiptDate = "14.08.2025. 23:25:44";
 
             if (pib.isEmpty() || totalAmount.isEmpty() || invoiceNumber.isEmpty()) {
                 throw new IllegalArgumentException("Required fields missing in fiscal receipt HTML.");

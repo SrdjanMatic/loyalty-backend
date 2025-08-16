@@ -82,16 +82,11 @@ public class KeycloakService {
         }
     }
 
-    public UserRepresentation getUserByUsername(String username) {
+    public UserRepresentation userExistByUsername(String username) {
         UsersResource usersResource = keycloak.realm(realm).users();
-
         try {
-            // Search users by username (exact match)
             List<UserRepresentation> users = usersResource.search(username, 0, 1);
-            if (users.isEmpty()) {
-                throw new EntityNotFoundException("User not found with username: " + username);
-            }
-            return users.get(0);
+            return users.isEmpty() ? null : users.get(0);
         } catch (Exception e) {
             throw new RuntimeException("Failed to get user by username: " + username, e);
         }

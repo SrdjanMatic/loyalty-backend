@@ -161,7 +161,7 @@ public class RestaurantServiceImpl implements RestaurantService {
     public RestaurantAdminView createRestaurantAdmin(CreateRestaurantAdminDTO restaurantAdminDTO, Principal principal) {
         rolePermissionsChecker.canCreateOrUpdateRestaurantAdmin(principal);
 
-        UserRepresentation userExist = keycloakService.getUserByUsername(restaurantAdminDTO.username());
+        UserRepresentation userExist = keycloakService.userExistByUsername(restaurantAdminDTO.username());
         String adminKeycloakId;
         if (userExist == null) {
             adminKeycloakId = keycloakService.createRestaurantAdmin(restaurantAdminDTO.username(), restaurantAdminDTO.email(), restaurantAdminDTO.firstName(), restaurantAdminDTO.lastName(), restaurantAdminDTO.username() + "123!");
